@@ -1,3 +1,4 @@
+from scipy.stats import multivariate_normal
 from emnist import extract_training_samples
 import matplotlib.pyplot as plt
 import numpy as np
@@ -35,9 +36,30 @@ images, labels = extract_training_samples('letters')
 
 print("Full training set is: " + str(images.shape))
 
-# plt.figure(1, figsize=(3, 3))
-# plt.imshow(images[29], cmap=plt.cm.gray_r, interpolation='nearest')
-# plt.show()
+# trainingSize = 0
+# parsedSet = []
+# for image in images:
+#     parsed = []
+#     for i in range(0,28):
+#         total = 0
+#         for j in range(0,28):
+#             total = total + (image[i][j]/255)
+        
+#         parsed.append(total/28)
+
+#     for i in range(0, 28):
+#         total = 0
+#         for j in range(0,28):
+#             total = total + (image[j][i]/255)
+        
+#         parsed.append(total/28)
+
+#     parsedSet.append(np.array(parsed))
+    
+#     if trainingSize > 5000:
+#         break
+#     else:
+#         trainingSize = trainingSize + 1
 
 trainingSize = 0
 parsedSet = []
@@ -46,24 +68,23 @@ for image in images:
     for i in range(0,28):
         total = 0
         for j in range(0,28):
-            total = total + (image[i][j])
+            total = total + (image[i][j]/255)
         
-        parsed.append(total)
+        parsed.append(total/28)
 
     for i in range(0, 28):
         total = 0
         for j in range(0,28):
-            total = total + (image[j][i])
+            total = total + (image[j][i]/255)
         
-        parsed.append(total)
+        parsed.append(total/28)
 
     parsedSet.append(np.array(parsed))
     
-    if trainingSize > 4000:
+    if trainingSize > 5000:
         break
     else:
         trainingSize = trainingSize + 1
-
 
 print("Number of training set taken is " + str(len(parsedSet)) + " with shape " + str(parsedSet[0].shape))
 xtrains = parsedSet[1000:len(parsedSet)]
