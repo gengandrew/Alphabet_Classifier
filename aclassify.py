@@ -6,12 +6,22 @@ import sympy
 import math
 
 def getMaxConfidence(confidences):
-    max = (0,0)
+    high = (0,0)
+    mid = (0,0)
+    low = (0,0)
     for confidence in confidences:
-        if confidence[1] > max[1]:
-            max = confidence
+        if confidence[1] > high[1]:
+            high = confidence
     
-    return max
+    for confidence in confidences:
+        if confidence[1] > mid[1] and confidence[1] != high[1]:
+            mid = confidence
+    
+    for confidence in confidences:
+        if confidence[1] > low[1] and confidence[1] != high[1] and confidence[1] != mid[1]:
+            low = confidence
+    
+    return (high, mid, low)
 
 def checkPosSemiDef(xtest, mean, covar):
     ret = [True, True, True]
@@ -52,41 +62,62 @@ images, labels = extract_training_samples('letters')
 
 print("Full training set is: " + str(images.shape))
 
-trainingSize = 0
-parsedSet = []
-for image in images:
-    parsed = []
-    for i in range(0,28):
-        total = 0
-        for j in range(0,28):
-            total = total + (image[i][j]/255)
-        
-        parsed.append(total/28)
-
-    for i in range(0, 28):
-        total = 0
-        for j in range(0,28):
-            total = total + (image[j][i]/255)
-        
-        parsed.append(total/28)
-
-    parsedSet.append(np.array(parsed))
-    
-    if trainingSize > 5000:
-        break
-    else:
-        trainingSize = trainingSize + 1
-
 # trainingSize = 0
 # parsedSet = []
 # for image in images:
 #     parsed = []
-#     parsedSet.append(image.flatten())
+#     for i in range(0,28):
+#         total = 0
+#         for j in range(0,28):
+#             total = total + (image[i][j]/255)
+        
+#         parsed.append(total/28)
+
+#     for i in range(0, 28):
+#         total = 0
+#         for j in range(0,28):
+#             total = total + (image[j][i]/255)
+        
+#         parsed.append(total/28)
+
+#     parsedSet.append(np.array(parsed))
     
 #     if trainingSize > 5000:
 #         break
 #     else:
 #         trainingSize = trainingSize + 1
+
+trainingSize = 0
+parsedSet = []
+for image in images:
+    # Creating 7x7 Matrix
+    matrix7 = np.zeros((7,7))
+    for i in range(0,7):
+        for j in range(0,7):
+            element = 0
+            for x in range(0,4):
+                for y in range(0,4):
+                    element = element + (image[i+x][j+y]/255)
+
+            matrix7[i,j] = element/16
+    
+    # Creating 4x4 Matrix
+    matrix4 = np.zeros((4,4))
+    for i in range(0,4):
+        for j in range(0,4):
+            element = 0
+            for x in range(0,7):
+                for y in range(0,7):
+                    element = element + (image[i+x][j+y]/255)
+
+            matrix4[i,j] = element/49
+
+    parsedSet.append(np.append(matrix7.flatten(),matrix4.flatten()))
+    
+    if trainingSize > 5000:
+        break
+    else:
+        trainingSize = trainingSize + 1
 
 print("Number of training set taken is " + str(len(parsedSet)) + " with shape " + str(parsedSet[0].shape))
 xtrains = parsedSet[1000:len(parsedSet)]
@@ -134,10 +165,15 @@ for epoch in range(0,500):
     for i in range(0,len(alphabet)):
         # _, inds = sympy.Matrix(covars[i]).T.rref()
         iteration = 0
+        # print(np.linalg.eigvals(covars[i]))
         while not np.all(np.linalg.eigvals(covars[i]) > 0):
-            fuzz = np.random.normal(0,0.01,covars[0].shape)
+            # fuzz = np.random.normal(0,0.01,covars[0].shape)
+            fuzzScalar = np.random.normal(0,0.0001,1)[0]
+            fuzz = fuzzScalar * np.identity(covars[0].shape[0])
+            # print(fuzz.shape)
             covars[i] = covars[i] + fuzz
-            print("Fuzzing iteration #" + str(iteration) + " for character #" + str(i))
+            # print(np.linalg.eigvals(covars[i]))
+            # print("Fuzzing iteration #" + str(iteration) + " for character #" + str(i))
             iteration = iteration + 1
 
     # print("Starting to calculate the MVN density")
@@ -150,15 +186,19 @@ for epoch in range(0,500):
     for curr in range(0,1000):
         confidences = [None]*len(alphabet)
         for i in range(0,len(alphabet)):
-            print(checkPosSemiDef(xtests[curr], means[i], covars[i]))            
+            # print(checkPosSemiDef(xtests[curr], means[i], covars[i]))            
             confidences[i] = (i, multivariate_normal.pdf(xtests[curr], mean=means[i], cov=covars[i]))
             # confidences[i] = (i, getDensity(means[i], covars[i], scalars[i], xtests[test]))
-            print(confidences[i])
+            # print(confidences[i])
 
         prediction = getMaxConfidence(confidences)
-        if prediction[0] == labels[curr]-1:
+        if prediction[0][0] == labels[curr]-1:
             epochscore = epochscore + 1
-
+        elif prediction[1][0] == labels[curr]-1:
+            epochscore = epochscore + 0.5
+        elif prediction[2][0] == labels[curr]-1:
+            epochscore = epochscore + 0.25
+    
     print("Epoch #" + str(epoch) + " with final score of " + str(epochscore))
     if epochscore > bestscore:
         bestscore = epochscore
