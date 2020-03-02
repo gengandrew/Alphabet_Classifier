@@ -23,20 +23,15 @@ def getMaxConfidence(confidences):
     
     return (high, mid, low)
 
-def checkPosSemiDef(xtest, mean, covar):
-    ret = [True, True, True]
-    for each in xtest:
-        if each < 0:
-            ret[0] = False
+
+def getZeroEigvals(covars):
+    eigvals = np.linalg.eigvals(covars[i])
+    count = 0
+    for eigval in eigvals:
+        if eigval <= 0:
+            count = count + 1
     
-    for each in mean:
-        if each < 0:
-            ret[1] = False
-
-    if not np.all(np.linalg.eigvals(covar) > 0):
-        ret[2] = False
-
-    return ret    
+    return count
 
 
 def getDensity(mean, covar, scalar, xtest):
@@ -61,31 +56,6 @@ alphabet = ['a', 'b', 'c', 'd', 'e', 'f', 'g', 'h', 'i', 'j', 'k', 'l', 'm', 'n'
 images, labels = extract_training_samples('letters')
 
 print("Full training set is: " + str(images.shape))
-
-# trainingSize = 0
-# parsedSet = []
-# for image in images:
-#     parsed = []
-#     for i in range(0,28):
-#         total = 0
-#         for j in range(0,28):
-#             total = total + (image[i][j]/255)
-        
-#         parsed.append(total/28)
-
-#     for i in range(0, 28):
-#         total = 0
-#         for j in range(0,28):
-#             total = total + (image[j][i]/255)
-        
-#         parsed.append(total/28)
-
-#     parsedSet.append(np.array(parsed))
-    
-#     if trainingSize > 5000:
-#         break
-#     else:
-#         trainingSize = trainingSize + 1
 
 trainingSize = 0
 parsedSet = []
@@ -113,11 +83,32 @@ for image in images:
             matrix4[i,j] = element/49
 
     parsedSet.append(np.append(matrix7.flatten(),matrix4.flatten()))
-    
+
     if trainingSize > 5000:
         break
     else:
         trainingSize = trainingSize + 1
+
+# trainingSize = 0
+# parsedSet = []
+# for image in images:
+#     # Creating 7x7 Matrix
+#     matrix14 = np.zeros((14,14))
+#     for i in range(0,14):
+#         for j in range(0,14):
+#             element = 0
+#             for x in range(0,2):
+#                 for y in range(0,2):
+#                     element = element + (image[i+x][j+y]/255)
+
+#             matrix14[i,j] = element/4
+
+#     parsedSet.append(matrix14.flatten())
+    
+#     if trainingSize > 5000:
+#         break
+#     else:
+#         trainingSize = trainingSize + 1
 
 print("Number of training set taken is " + str(len(parsedSet)) + " with shape " + str(parsedSet[0].shape))
 xtrains = parsedSet[1000:len(parsedSet)]
@@ -166,14 +157,14 @@ for epoch in range(0,500):
         # _, inds = sympy.Matrix(covars[i]).T.rref()
         iteration = 0
         # print(np.linalg.eigvals(covars[i]))
-        while not np.all(np.linalg.eigvals(covars[i]) > 0):
-            # fuzz = np.random.normal(0,0.01,covars[0].shape)
+        while (not np.all(np.linalg.eigvals(covars[i]) > 0)) or (abs(np.linalg.det(covars[i])) <= 0):
             fuzzScalar = np.random.normal(0,0.0001,1)[0]
             fuzz = fuzzScalar * np.identity(covars[0].shape[0])
+            # fuzz = np.random.normal(0,0.01,covars[0].shape)
             # print(fuzz.shape)
             covars[i] = covars[i] + fuzz
-            # print(np.linalg.eigvals(covars[i]))
-            # print("Fuzzing iteration #" + str(iteration) + " for character #" + str(i))
+            print(getZeroEigvals(covars))
+            print("Fuzzing iteration #" + str(iteration) + " for character #" + str(i))
             iteration = iteration + 1
 
     # print("Starting to calculate the MVN density")
@@ -186,7 +177,7 @@ for epoch in range(0,500):
     for curr in range(0,1000):
         confidences = [None]*len(alphabet)
         for i in range(0,len(alphabet)):
-            # print(checkPosSemiDef(xtests[curr], means[i], covars[i]))            
+            # print(checkPosSemiDef(xtests[curr], means[i], covars[i]))
             confidences[i] = (i, multivariate_normal.pdf(xtests[curr], mean=means[i], cov=covars[i]))
             # confidences[i] = (i, getDensity(means[i], covars[i], scalars[i], xtests[test]))
             # print(confidences[i])
@@ -220,7 +211,7 @@ for epoch in range(0,500):
                 outfile.write("# Mean number " + str(aindex) + " letter " + str(alphabet[aindex]) + "\n")
                 np.savetxt(outfile, mean)
                 aindex = aindex + 1
-        
+
 
 # # Code for getting data out of file
 # new_data = np.loadtxt(covarfilename)
