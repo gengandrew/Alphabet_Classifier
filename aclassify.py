@@ -34,21 +34,10 @@ def getZeroEigvals(covars):
     return count
 
 
-def getDensity(mean, covar, scalar, xtest):
-    normX = xtest - mean
-    iconvar = np.linalg.inv(covar)
-    
-    expres = np.dot(normX, iconvar)
-    expres = np.dot(expres, normX)
-    expres = -0.5*expres
-
-    try:     
-        expres = math.exp(expres)
-    except OverflowError:
-        expres = float('inf')
-
-    confidence = scalar*expres
-    return confidence
+def graph(image):
+    plt.figure(1, figsize=(3, 3))
+    plt.imshow(image, cmap=plt.cm.gray_r, interpolation='nearest')
+    plt.show()
 
 
 bestscore = 0
@@ -114,7 +103,7 @@ print("Number of training set taken is " + str(len(parsedSet)) + " with shape " 
 xtrains = parsedSet[1000:len(parsedSet)]
 xtests = parsedSet[:1000]
 
-for epoch in range(0,500):
+for epoch in range(0,1):
     means = [None]*len(alphabet)
     counts = [None]*len(alphabet)
     for i in range(0,len(alphabet)):
@@ -152,35 +141,27 @@ for epoch in range(0,500):
     for i in range(0,len(alphabet)):
         covars[i] = covars[i]/counts[i]
 
-    # print("Starting to Fuzz Covar")
+    print(covars[0].shape)
     for i in range(0,len(alphabet)):
         # _, inds = sympy.Matrix(covars[i]).T.rref()
         iteration = 0
-        # print(np.linalg.eigvals(covars[i]))
         while (not np.all(np.linalg.eigvals(covars[i]) > 0)) or (abs(np.linalg.det(covars[i])) <= 0):
             fuzzScalar = np.random.normal(0,0.0001,1)[0]
             fuzz = fuzzScalar * np.identity(covars[0].shape[0])
             # fuzz = np.random.normal(0,0.01,covars[0].shape)
-            # print(fuzz.shape)
             covars[i] = covars[i] + fuzz
-            print(getZeroEigvals(covars))
-            print("Fuzzing iteration #" + str(iteration) + " for character #" + str(i))
             iteration = iteration + 1
 
     # print("Starting to calculate the MVN density")
     scalars = [None]*len(alphabet)
     for i in range(0,len(alphabet)):
         scalars[i] = 1 / np.sqrt( pow((2*math.pi),56) * abs(np.linalg.det(covars[i])))
-        # print(scalars[i])
 
     epochscore = 0
     for curr in range(0,1000):
         confidences = [None]*len(alphabet)
         for i in range(0,len(alphabet)):
-            # print(checkPosSemiDef(xtests[curr], means[i], covars[i]))
             confidences[i] = (i, multivariate_normal.pdf(xtests[curr], mean=means[i], cov=covars[i]))
-            # confidences[i] = (i, getDensity(means[i], covars[i], scalars[i], xtests[test]))
-            # print(confidences[i])
 
         prediction = getMaxConfidence(confidences)
         if prediction[0][0] == labels[curr]-1:
@@ -211,17 +192,3 @@ for epoch in range(0,500):
                 outfile.write("# Mean number " + str(aindex) + " letter " + str(alphabet[aindex]) + "\n")
                 np.savetxt(outfile, mean)
                 aindex = aindex + 1
-
-
-# # Code for getting data out of file
-# new_data = np.loadtxt(covarfilename)
-# new_data = new_data.reshape((26, 56, 56))
-# assert(np.all(new_data == covars))
-
-# new_data = np.loadtxt(meanfilename)
-# new_data = new_data.reshape((26, 56))
-# assert(np.all(new_data == means))
-
-# plt.figure(1, figsize=(3, 3))
-# plt.imshow(images[0], cmap=plt.cm.gray_r, interpolation='nearest')
-# plt.show()

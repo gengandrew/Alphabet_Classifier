@@ -2,3 +2,5 @@
 
 !.gitignore
 !aclassify.py
+!parse.py
+!model.txt
