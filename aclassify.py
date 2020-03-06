@@ -41,12 +41,14 @@ def graph(image):
 
 
 bestscore = 0
+trainingSize = 5000
+epochSize = 500
 alphabet = ['a', 'b', 'c', 'd', 'e', 'f', 'g', 'h', 'i', 'j', 'k', 'l', 'm', 'n', 'o', 'p', 'q', 'r', 's', 't', 'u', 'p', 'w', 'x', 'y', 'z']
 images, labels = extract_training_samples('letters')
 
 print("Full training set is: " + str(images.shape))
 
-trainingSize = 0
+size = 0
 parsedSet = []
 for image in images:
     # Creating 7x7 Matrix
@@ -73,10 +75,10 @@ for image in images:
 
     parsedSet.append(np.append(matrix7.flatten(),matrix4.flatten()))
 
-    if trainingSize > 5000:
+    if size > trainingSize:
         break
     else:
-        trainingSize = trainingSize + 1
+        size = size + 1
 
 # trainingSize = 0
 # parsedSet = []
@@ -103,7 +105,7 @@ print("Number of training set taken is " + str(len(parsedSet)) + " with shape " 
 xtrains = parsedSet[1000:len(parsedSet)]
 xtests = parsedSet[:1000]
 
-for epoch in range(0,1):
+for epoch in range(0,epochSize):
     means = [None]*len(alphabet)
     counts = [None]*len(alphabet)
     for i in range(0,len(alphabet)):
