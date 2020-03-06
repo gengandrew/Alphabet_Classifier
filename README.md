@@ -14,9 +14,9 @@ The program is intented to run on python 3.7 with the following necessary librar
 ## Setup
 
 - By default we are taking only 5000 samples from the emnist training set.
-- - Alterations can be made through the "trainingSize" variable.
+    - Alterations can be made through the "trainingSize" variable.
 - The algorithm performace varies probabilistically, thus we run 500 epochs taking the best performing covariance.
-- - Alterations can be made through the "epochSize" variable.
+    - Alterations can be made through the "epochSize" variable.
 - Resulting means and covariances will be written out to text files which can be parsed using parse.py.
 
 ## Getting started
